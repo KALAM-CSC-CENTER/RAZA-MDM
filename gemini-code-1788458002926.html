@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro Attendance OS | Enterprise Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: #f8fafc; 
+        }
+        .hidden-section { display: none !important; }
+        
+        .fade-in { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(15px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 100; display: flex; flex-direction: column; gap: 10px; }
+        .toast { 
+            min-width: 280px; padding: 16px 24px; border-radius: 12px; color: white; font-weight: 500; font-size: 0.95rem;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); 
+            opacity: 0; transform: translateX(100%) scale(0.9); transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55); 
+            display: flex; align-items: center; gap: 12px;
+        }
+        .toast.show { opacity: 1; transform: translateX(0) scale(1); }
+        .toast-success { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .toast-error { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+
+        .sidebar-overlay { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
+        
+        /* Form Inputs Styling */
+        .form-input {
+            width: 100%; background: #f8fafc; border: 1px solid #e2e8f0; padding: 0.75rem 1rem; border-radius: 0.75rem;
+            outline: none; transition: all 0.2s; color: #334155; font-weight: 500;
+        }
+        .form-input:focus { border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); }
+    </style>
+</head>
+<body class="text-slate-800 flex h-screen overflow-hidden selection:bg-indigo-100 selection:text-indigo-900">
+
+    <div id="mobileOverlay" class="fixed inset-0 sidebar-overlay z-30 hidden lg:hidden" onclick="toggleMobileMenu()"></div>
+
+    <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 w-72 bg-slate-900 text-white flex flex-col shadow-2xl z-40 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+        <div class="p-6 border-b border-slate-800 flex items-center justify-between lg:justify-start gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-2xl shadow-lg shadow-indigo-500/30 ring-2 ring-indigo-500/50 cursor-pointer hover:scale-105 transition-transform">
+                    <i class="fa-solid fa-fingerprint text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">AttendOS</h1>
+                    <p class="text-xs text-indigo-300 font-medium tracking-wider uppercase">Pro Edition</p>
+                </div>
+            </div>
+            <button class="lg:hidden text-slate-400 hover:text-white p-2 rounded-lg bg-slate-800" onclick="toggleMobileMenu()">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+
+        <nav class="flex-1 p-5 space-y-2 mt-2 overflow-y-auto">
+            <button onclick="switchTab('dashboard-tab', this)" class="nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl bg-indigo-600/10 text-indigo-400 font-semibold border border-indigo-500/20 transition-all hover:bg-indigo-600 hover:text-white group">
+                <i class="fa-solid fa-chart-pie w-6 text-lg group-hover:scale-110 transition-transform"></i> Dashboard
+            </button>
+            <button onclick="switchTab('attendance-tab', this)" class="nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-slate-400 font-medium hover:bg-slate-800 hover:text-white transition-all group border border-transparent">
+                <i class="fa-solid fa-calendar-check w-6 text-lg group-hover:scale-110 transition-transform"></i> Mark Attendance
+            </button>
+            <button onclick="switchTab('report-tab', this)" class="nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-slate-400 font-medium hover:bg-slate-800 hover:text-white transition-all group border border-transparent">
+                <i class="fa-solid fa-file-invoice w-6 text-lg group-hover:scale-110 transition-transform"></i> Analytics & Reports
+            </button>
+            <button onclick="switchTab('employee-tab', this)" class="nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-slate-400 font-medium hover:bg-slate-800 hover:text-white transition-all group border border-transparent">
+                <i class="fa-solid fa-users-gear w-6 text-lg group-hover:scale-110 transition-transform"></i> Manage Staff
+            </button>
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50 relative">
+        
+        <header class="lg:hidden bg-white border-b border-slate-200 p-4 flex justify-between items-center shadow-sm z-20">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-sm shadow-md">
+                    <i class="fa-solid fa-fingerprint text-white"></i>
+                </div>
+                <h1 class="text-lg font-bold text-slate-800">AttendOS</h1>
+            </div>
+            <button onclick="toggleMobileMenu()" class="text-slate-600 hover:bg-slate-100 p-2 rounded-lg transition-colors border border-slate-200">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-6 md:p-8 lg:p-10 scroll-smooth">
+            <div class="max-w-7xl mx-auto">
+
+                <div id="dashboard-tab" class="fade-in space-y-8 block">
+                    <div class="flex justify-between items-end mb-6">
+                        <div>
+                            <h2 class="text-3xl font-bold text-slate-900 tracking-tight">System Overview</h2>
+                            <p class="text-slate-500 mt-1 font-medium" id="currentDateDisplay">Loading date...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-5">
+                        <div class="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 border border-slate-200 flex flex-col">
+                            <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 mb-4">
+                                <i class="fa-solid fa-users text-lg"></i>
+                            </div>
+                            <h3 id="statTotalEmp" class="text-3xl font-bold text-slate-800">0</h3>
+                            <p class="text-sm font-medium text-slate-500 mt-1">Total Staff</p>
+                        </div>
+                        
+                        <div class="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 border border-emerald-100 flex flex-col relative overflow-hidden group">
+                            <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 mb-4 relative z-10">
+                                <i class="fa-solid fa-check text-lg"></i>
+                            </div>
+                            <h3 id="statTodayPresent" class="text-3xl font-bold text-emerald-600 relative z-10">0</h3>
+                            <p class="text-sm font-medium text-slate-500 mt-1 relative z-10">Working / Done</p>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 border border-rose-100 flex flex-col relative overflow-hidden group">
+                            <div class="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 mb-4 relative z-10">
+                                <i class="fa-solid fa-xmark text-lg"></i>
+                            </div>
+                            <h3 id="statTodayAbsent" class="text-3xl font-bold text-rose-600 relative z-10">0</h3>
+                            <p class="text-sm font-medium text-slate-500 mt-1 relative z-10">Absent Today</p>
+                        </div>
+
+                        <!-- Interactive Blue Hours Card -->
+                        <div onclick="toggleHoursCard()" class="bg-gradient-to-br from-indigo-600 to-indigo-800 p-6 rounded-2xl shadow-lg shadow-indigo-200 flex flex-col text-white relative overflow-hidden hover:shadow-indigo-300 hover:-translate-y-1 transition-all duration-300 md:col-span-3 lg:col-span-3 cursor-pointer select-none group" title="Click to switch between This Month and Today Hours">
+                            <div class="absolute -right-2 -bottom-2 opacity-10 group-hover:scale-110 transition-transform"><i class="fa-solid fa-clock text-8xl"></i></div>
+                            <div class="flex items-center justify-between relative z-10 mb-4">
+                                <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white backdrop-blur-sm">
+                                    <i class="fa-solid fa-business-time text-lg"></i>
+                                </div>
+                                <span class="text-xs bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded-full font-semibold backdrop-blur-md transition-colors flex items-center gap-1">
+                                    <i class="fa-solid fa-rotate text-[10px]"></i> Click to Toggle
+                                </span>
+                            </div>
+                            <h3 id="statMonthHours" class="text-2xl md:text-3xl font-bold relative z-10">0 mins</h3>
+                            <p id="statHoursLabel" class="text-sm font-medium text-indigo-100 mt-1 relative z-10">Total Time Logged (This Month)</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-8 md:p-10 rounded-3xl shadow-sm border border-slate-200 mt-6">
+                        <div class="flex flex-col items-start gap-3 mb-6">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100">
+                                    <i class="fa-solid fa-id-card-clip text-xl"></i>
+                                </div>
+                                <h3 class="text-2xl font-bold text-slate-800">Quick ID Attendance</h3>
+                            </div>
+                            <p class="text-slate-500 text-base font-medium">Scan staff barcode or manually enter the Employee ID to instantly record clock-in/out times.</p>
+                        </div>
+                        
+                        <form onsubmit="event.preventDefault(); quickMarkAttendance();" class="flex flex-col md:flex-row w-full gap-4 mt-2">
+                            <div class="relative w-full flex-1">
+                                <i class="fa-solid fa-key absolute left-5 top-1/2 transform -translate-y-1/2 text-slate-400 text-lg"></i>
+                                <input type="text" id="quickEmpId" placeholder="Enter Employee ID (e.g. EMP-1045)" class="w-full bg-white border-2 border-indigo-100 text-slate-700 py-4 pl-14 pr-6 rounded-2xl outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-lg font-medium transition-all shadow-sm" required autocomplete="off" autofocus>
+                            </div>
+                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white px-8 py-4 rounded-2xl text-lg font-semibold shadow-lg shadow-indigo-600/20 transition-all whitespace-nowrap flex items-center justify-center gap-3">
+                                Mark Attendance <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="attendance-tab" class="hidden-section fade-in">
+                    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="p-6 md:p-8 border-b border-slate-100 bg-slate-50/50">
+                            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
+                                <div>
+                                    <h2 class="text-2xl font-bold text-slate-900">Mark Attendance</h2>
+                                    <p class="text-slate-500 text-sm mt-1">Status locks automatically once saved to prevent tampering.</p>
+                                </div>
+                                <div class="flex flex-wrap gap-3 items-center w-full md:w-auto">
+                                    <div class="relative w-full md:w-auto">
+                                        <i class="fa-regular fa-calendar absolute left-3.5 top-3.5 text-slate-400"></i>
+                                        <input type="date" id="attendanceDate" class="w-full md:w-auto bg-white border border-slate-200 text-slate-700 py-2.5 pl-10 pr-4 rounded-xl outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 font-medium transition-all shadow-sm" onchange="renderAttendance(); updateDashboard();">
+                                    </div>
+                                    <button onclick="markAllPresent()" class="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white px-5 py-2.5 rounded-xl font-medium shadow-md shadow-indigo-600/20 transition-all flex items-center justify-center gap-2">
+                                        <i class="fa-solid fa-clock"></i> Clock-In All
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="mt-6 relative">
+                                <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-400"></i>
+                                <input type="text" id="searchBox" onkeyup="filterAttendance()" placeholder="Search staff member by name..." class="w-full bg-white border border-slate-200 p-3 pl-11 rounded-xl outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all text-slate-700 shadow-sm">
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-left bg-white">
+                                <thead class="bg-slate-50 border-y border-slate-200 text-slate-500 text-xs font-semibold uppercase tracking-wider sticky top-0 z-10">
+                                    <tr>
+                                        <th class="py-4 px-6">Employee Profile</th>
+                                        <th class="py-4 px-6 text-center">Check-In Time</th>
+                                        <th class="py-4 px-6 text-center">Current Status</th>
+                                        <th class="py-4 px-6 text-center">Check-Out Time</th>
+                                        <th class="py-4 px-6 text-center">Action (Locks on Save)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attendanceBody" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="report-tab" class="hidden-section fade-in">
+                    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="p-6 md:p-8 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
+                            <div>
+                                <h2 class="text-2xl font-bold text-slate-900">Analytics & Reports</h2>
+                                <p class="text-slate-500 text-sm mt-1">Export monthly attendance and hours calculated.</p>
+                            </div>
+                            <div class="flex flex-wrap gap-3 w-full md:w-auto">
+                                <div class="relative flex-1 md:flex-none">
+                                    <i class="fa-regular fa-calendar-days absolute left-3.5 top-3.5 text-slate-400"></i>
+                                    <input type="month" id="reportMonth" class="w-full bg-white border border-slate-200 py-2.5 pl-10 pr-4 rounded-xl outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 font-medium transition-all shadow-sm" onchange="renderReport()">
+                                </div>
+                                <button onclick="exportCSV()" class="flex-1 md:flex-none bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white px-5 py-2.5 rounded-xl font-medium shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-file-csv"></i> Export CSV
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-left bg-white">
+                                <thead class="bg-slate-50 border-y border-slate-200 text-slate-500 text-xs font-semibold uppercase tracking-wider sticky top-0">
+                                    <tr>
+                                        <th class="py-4 px-6">Name</th>
+                                        <th class="py-4 px-6 text-center">Days Worked</th>
+                                        <th class="py-4 px-6 text-center">Absent</th>
+                                        <th class="py-4 px-6 text-center text-indigo-600 bg-indigo-50/30">Total Time Logged</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reportTableBody" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="employee-tab" class="hidden-section fade-in">
+                    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="p-6 md:p-8 border-b border-slate-100 bg-slate-50/50">
+                            <h2 class="text-2xl font-bold text-slate-900">Manage Staff Directory</h2>
+                            <p class="text-slate-500 text-sm mt-1 mb-4">Add new staff details. Click on an employee's photo in the list below to view their full profile.</p>
+                            
+                            <button onclick="document.getElementById('addEmpFormWrapper').classList.toggle('hidden')" class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white px-5 py-2.5 rounded-xl font-medium shadow-md transition-all flex items-center gap-2 mb-2">
+                                <i class="fa-solid fa-user-plus"></i> Add Employee Profile
+                            </button>
+
+                            <div id="addEmpFormWrapper" class="hidden mt-4">
+                                <form id="addEmpForm" onsubmit="event.preventDefault(); addEmployee();" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm transition-all grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    
+                                    <div>
+                                        <label class="block text-sm font-semibold text-slate-600 mb-1">Full Name <span class="text-rose-500">*</span></label>
+                                        <input type="text" id="empName" placeholder="Enter Full Name" class="form-input" required>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold text-slate-600 mb-1">Father's Name <span class="text-rose-500">*</span></label>
+                                        <input type="text" id="empFather" placeholder="Enter Father's Name" class="form-input" required>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold text-slate-600 mb-1">Mother's Name</label>
+                                        <input type="text" id="empMother" placeholder="Enter Mother's Name (Optional)" class="form-input">
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold text-slate-600 mb-1">Gender <span class="text-rose-500">*</span></label>
+                                        <select id="empGender" class="form-input" required>
+                                            <option value="" disabled selected>Select Gender</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold text-slate-600 mb-1">Mobile Number <span class="text-rose-500">*</span></label>
+                                        <input type="tel" id="empMobile" pattern="[0-9]{10}" maxlength="10" placeholder="10 Digit Mobile No." class="form-input" required>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold text-slate-600 mb-1">Aadhar Number</label>
+                                        <input type="text" id="empAadhar" pattern="[0-9]{12}" maxlength="12" placeholder="12 Digit Aadhar No. (Optional)" class="form-input">
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold text-slate-600 mb-1">Joining Date <span class="text-rose-500">*</span></label>
+                                        <input type="date" id="empJoiningDate" class="form-input" required>
+                                    </div>
+
+                                    <div class="md:col-span-2">
+                                        <label class="block text-sm font-semibold text-slate-600 mb-1">Full Address <span class="text-rose-500">*</span></label>
+                                        <textarea id="empAddress" rows="2" placeholder="Enter Complete Address" class="form-input resize-none" required></textarea>
+                                    </div>
+
+                                    <div class="md:col-span-2 flex justify-end mt-2">
+                                        <button type="submit" class="bg-slate-900 hover:bg-black active:scale-95 text-white px-8 py-3 rounded-xl font-medium shadow-md transition-all flex items-center justify-center gap-2">
+                                            <i class="fa-solid fa-check"></i> Save Employee Profile
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-left bg-white">
+                                <thead class="bg-slate-50 border-y border-slate-200 text-slate-500 text-xs font-semibold uppercase tracking-wider sticky top-0">
+                                    <tr>
+                                        <th class="py-4 px-6 w-20">Emp ID</th>
+                                        <th class="py-4 px-6">Employee Profile (Click to View)</th>
+                                        <th class="py-4 px-6 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="employeeListBody" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <div id="profileModal" class="fixed inset-0 bg-slate-900/60 hidden z-50 flex items-center justify-center backdrop-blur-sm transition-opacity" onclick="closeProfileModal(event)">
+        <div class="bg-white rounded-3xl p-6 md:p-8 w-full max-w-lg relative shadow-2xl transform transition-transform scale-95" id="profileModalContent">
+            <button onclick="closeProfile()" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div id="profileData" class="mt-2"></div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal for Check-out -->
+    <div id="checkoutConfirmModal" class="fixed inset-0 bg-slate-900/60 hidden z-[60] flex items-center justify-center backdrop-blur-sm transition-opacity" onclick="closeCheckoutModalEvent(event)">
+        <div class="bg-white rounded-3xl p-6 md:p-8 w-full max-w-sm relative shadow-2xl transform transition-transform scale-95" id="checkoutModalContent">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4 text-rose-500 text-2xl">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-2">Confirm Check-out</h3>
+                <p class="text-slate-500 mb-6 font-medium" id="checkoutModalText">Are you sure you want to Check-out?</p>
+                <div class="flex gap-3">
+                    <button onclick="closeCheckoutModal()" class="flex-1 bg-slate-100 text-slate-700 hover:bg-slate-200 py-3 rounded-xl font-semibold transition-colors">Cancel</button>
+                    <button id="confirmCheckoutBtn" class="flex-1 bg-rose-500 text-white hover:bg-rose-600 py-3 rounded-xl font-semibold transition-colors shadow-lg shadow-rose-500/30">Yes, Check-out</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script>
+        // --- 1. SETUP & DATA LOGIC ---
+        let employees = JSON.parse(localStorage.getItem('pro_employees_v2')) || [];
+        let attendanceRecord = JSON.parse(localStorage.getItem('pro_attendanceRecord_v2')) || {};
+        let hoursCardMode = 'month'; // Default is always 'month'
+
+        document.getElementById('attendanceDate').valueAsDate = new Date();
+        document.getElementById('reportMonth').value = new Date().toISOString().slice(0,7);
+        
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById('currentDateDisplay').innerText = new Date().toLocaleDateString('en-US', options);
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const icon = type === 'success' ? '<i class="fa-solid fa-circle-check text-xl"></i>' : '<i class="fa-solid fa-circle-exclamation text-xl"></i>';
+            toast.className = `toast ${type === 'success' ? 'toast-success' : 'toast-error'}`;
+            toast.innerHTML = `${icon} <span>${message}</span>`;
+            
+            container.appendChild(toast);
+            requestAnimationFrame(() => setTimeout(() => toast.classList.add('show'), 10));
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 400);
+            }, 3500);
+        }
+
+        function toggleMobileMenu() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobileOverlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
+        function switchTab(tabId, btnElement) {
+            ['dashboard-tab', 'attendance-tab', 'report-tab', 'employee-tab'].forEach(id => {
+                document.getElementById(id).classList.remove('block');
+                document.getElementById(id).classList.add('hidden-section');
+            });
+            document.getElementById(tabId).classList.remove('hidden-section');
+            document.getElementById(tabId).classList.add('block');
+            
+            if(btnElement) {
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    btn.className = 'nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-slate-400 font-medium hover:bg-slate-800 hover:text-white transition-all group border border-transparent';
+                });
+                btnElement.className = 'nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl bg-indigo-600/10 text-indigo-400 font-semibold border border-indigo-500/20 transition-all hover:bg-indigo-600 hover:text-white group';
+            }
+
+            if(window.innerWidth < 1024 && !document.getElementById('sidebar').classList.contains('-translate-x-full')) {
+                toggleMobileMenu();
+            }
+
+            if (tabId === 'dashboard-tab') {
+                updateDashboard();
+                document.getElementById('quickEmpId').focus();
+            }
+            if (tabId === 'attendance-tab') renderAttendance();
+            if (tabId === 'report-tab') renderReport();
+            if (tabId === 'employee-tab') renderEmployees();
+        }
+
+        function generateAvatar(name) {
+            return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&rounded=true&bold=true`;
+        }
+
+        function formatHours(hoursFloat) {
+            if (!hoursFloat) return "0 mins";
+            const totalMins = Math.round(hoursFloat * 60);
+            const h = Math.floor(totalMins / 60);
+            const m = totalMins % 60;
+            let res = [];
+            if (h > 0) res.push(h + " hr" + (h > 1 ? "s" : ""));
+            if (m > 0 || (h === 0 && m === 0)) res.push(m + " min" + (m !== 1 ? "s" : ""));
+            return res.join(" ");
+        }
+
+        // --- EMPLOYEE MANAGEMENT ---
+        function addEmployee() {
+            const name = document.getElementById('empName').value.trim();
+            const fatherName = document.getElementById('empFather').value.trim();
+            const motherName = document.getElementById('empMother').value.trim();
+            const gender = document.getElementById('empGender').value;
+            const mobile = document.getElementById('empMobile').value.trim();
+            const aadhar = document.getElementById('empAadhar').value.trim();
+            const joiningDate = document.getElementById('empJoiningDate').value;
+            const address = document.getElementById('empAddress').value.trim();
+
+            if(!name || !fatherName || !gender || !mobile || !joiningDate || !address) {
+                showToast("Please fill all required fields!", "error");
+                return;
+            }
+
+            const shortId = Math.floor(1000 + Math.random() * 9000).toString();
+            
+            employees.push({ 
+                id: Date.now().toString(), 
+                empId: `EMP${shortId}`, 
+                name, 
+                fatherName, 
+                motherName, 
+                gender, 
+                mobile, 
+                aadhar, 
+                joiningDate,
+                address 
+            });
+            
+            saveData();
+            document.getElementById('addEmpForm').reset();
+            document.getElementById('addEmpFormWrapper').classList.add('hidden');
+            renderEmployees();
+            updateDashboard();
+            showToast(`${name} added successfully!`);
+        }
+
+        function deleteEmployee(id, name) {
+            const password = prompt(`Enter Admin Password to delete ${name}:`);
+            
+            if (password === "244601") {
+                employees = employees.filter(e => e.id !== id);
+                saveData();
+                renderEmployees();
+                updateDashboard();
+                showToast(`${name} removed from system.`);
+            } else if (password !== null) {
+                showToast("Incorrect Password! Access Denied.", "error");
+            }
+        }
+
+        // --- PROFILE MODAL LOGIC ---
+        function openProfile(id) {
+            const emp = employees.find(e => e.id === id);
+            if(!emp) return;
+
+            const maskedAadhar = emp.aadhar && emp.aadhar.length === 12 
+                ? '********' + emp.aadhar.slice(-4) 
+                : (emp.aadhar ? emp.aadhar : 'Not Provided');
+
+            const modalHTML = `
+                <div class="text-center mb-6">
+                    <img src="${generateAvatar(emp.name)}" class="w-24 h-24 rounded-full mx-auto shadow-md ring-4 ring-indigo-50 mb-3" alt="Avatar">
+                    <h3 class="text-2xl font-bold text-slate-800">${emp.name}</h3>
+                    <p class="text-indigo-600 font-semibold text-sm">#${emp.empId}</p>
+                </div>
+                <div class="space-y-4 bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Father's Name</p>
+                            <p class="font-semibold text-slate-800">${emp.fatherName || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Mother's Name</p>
+                            <p class="font-semibold text-slate-800">${emp.motherName || 'N/A'}</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Gender</p>
+                            <p class="font-semibold text-slate-800">${emp.gender || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Mobile No.</p>
+                            <a href="tel:${emp.mobile}" class="font-semibold text-indigo-600 hover:underline flex items-center gap-1">
+                                <i class="fa-solid fa-phone text-xs"></i> ${emp.mobile || 'N/A'}
+                            </a>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Joining Date</p>
+                            <p class="font-semibold text-slate-800">${emp.joiningDate || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Aadhar Number</p>
+                            <p class="font-semibold text-slate-800 font-mono bg-slate-200 inline-block px-3 py-1 rounded-lg tracking-widest">${maskedAadhar}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Full Address</p>
+                        <p class="font-medium text-slate-700 bg-white p-3 rounded-lg border border-slate-200">${emp.address || 'N/A'}</p>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('profileData').innerHTML = modalHTML;
+            const modal = document.getElementById('profileModal');
+            const content = document.getElementById('profileModalContent');
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.remove('scale-95');
+                content.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeProfile() {
+            const modal = document.getElementById('profileModal');
+            const content = document.getElementById('profileModalContent');
+            content.classList.remove('scale-100');
+            content.classList.add('scale-95');
+            setTimeout(() => { modal.classList.add('hidden'); }, 200);
+        }
+
+        function closeProfileModal(e) {
+            if(e.target.id === 'profileModal') closeProfile();
+        }
+
+        function renderEmployees() {
+            const tbody = document.getElementById('employeeListBody');
+            tbody.innerHTML = '';
+            employees.forEach((emp) => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100">
+                        <td class="py-4 px-6 text-sm font-medium text-slate-500">#${emp.empId}</td>
+                        <td class="py-4 px-6">
+                            <div class="flex items-center gap-4 cursor-pointer group" onclick="openProfile('${emp.id}')" title="Click to view full profile">
+                                <img src="${generateAvatar(emp.name)}" class="w-12 h-12 rounded-full group-hover:ring-4 ring-indigo-100 transition-all shadow-sm" alt="Avatar">
+                                <div>
+                                    <span class="font-bold text-slate-800 text-lg group-hover:text-indigo-600 transition-colors">${emp.name}</span>
+                                    <p class="text-xs text-slate-500 font-medium mt-0.5"><i class="fa-solid fa-phone text-slate-400"></i> ${emp.mobile || 'No Mobile'}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-4 px-6 text-right align-middle">
+                            <button onclick="deleteEmployee('${emp.id}', '${emp.name}')" class="text-rose-500 hover:bg-rose-50 px-4 py-2 rounded-lg font-medium transition-all border border-rose-200 shadow-sm flex items-center gap-2 ml-auto">
+                                <i class="fa-solid fa-trash-can"></i> Remove
+                            </button>
+                        </td>
+                    </tr>`;
+            });
+        }
+
+        // --- CHECKOUT MODAL LOGIC ---
+        let pendingCheckoutEmpId = null;
+
+        function showCheckoutConfirmation(empId) {
+            pendingCheckoutEmpId = empId;
+            const emp = employees.find(e => e.id === empId);
+            const empName = emp ? emp.name : '';
+            document.getElementById('checkoutModalText').innerText = `Are you sure you want to Check-out ${empName}?`;
+
+            const modal = document.getElementById('checkoutConfirmModal');
+            const content = document.getElementById('checkoutModalContent');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.remove('scale-95');
+                content.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeCheckoutModal() {
+            const modal = document.getElementById('checkoutConfirmModal');
+            const content = document.getElementById('checkoutModalContent');
+            content.classList.remove('scale-100');
+            content.classList.add('scale-95');
+            setTimeout(() => { modal.classList.add('hidden'); pendingCheckoutEmpId = null; }, 200);
+        }
+
+        function closeCheckoutModalEvent(e) {
+            if(e.target.id === 'checkoutConfirmModal') closeCheckoutModal();
+        }
+
+        document.getElementById('confirmCheckoutBtn').addEventListener('click', () => {
+            if (pendingCheckoutEmpId) {
+                executeCheckout(pendingCheckoutEmpId);
+                closeCheckoutModal();
+            }
+        });
+
+        function executeCheckout(empId) {
+            const date = document.getElementById('attendanceDate').value;
+            const currentRecord = attendanceRecord[date][empId];
+
+            currentRecord.clockOut = Date.now();
+            currentRecord.status = 'Completed';
+            const diffMs = currentRecord.clockOut - currentRecord.clockIn;
+            currentRecord.hours = diffMs / (1000 * 60 * 60);
+
+            showToast(`Clocked Out! Total logged: ${formatHours(currentRecord.hours)}`);
+            saveData();
+            renderAttendance();
+            updateDashboard();
+        }
+
+        // --- ATTENDANCE LOGIC ---
+        function markStatus(empId, action) {
+            const date = document.getElementById('attendanceDate').value;
+            if (!attendanceRecord[date]) attendanceRecord[date] = {};
+            
+            const currentRecord = attendanceRecord[date][empId];
+
+            if (currentRecord && (currentRecord.status === 'Completed' || currentRecord.status === 'Absent')) {
+                showToast("Action locked! Cannot change data now.", "error");
+                return;
+            }
+
+            if (action === 'ClockIn') {
+                attendanceRecord[date][empId] = { status: 'Clocked In', clockIn: Date.now(), clockOut: null, hours: 0 };
+                showToast("Clocked In! Time counting started.");
+            } 
+            else if (action === 'ClockOut') {
+                if(currentRecord && currentRecord.status === 'Clocked In') {
+                    
+                    // 10 MINUTE RESTRICTION LOGIC
+                    const diffMs = Date.now() - currentRecord.clockIn;
+                    const tenMinsInMs = 10 * 60 * 1000;
+
+                    if (diffMs < tenMinsInMs) {
+                        const remainingMins = Math.ceil((tenMinsInMs - diffMs) / 60000);
+                        showToast(`Check-out will be available after ${remainingMins} minute(s).`, "error");
+                        return; // Prevent check-out
+                    }
+
+                    // Show Confirmation Popup instead of direct Check-out
+                    showCheckoutConfirmation(empId);
+                    return; // Actual checkout is handled in executeCheckout()
+                }
+            } 
+            else if (action === 'Absent') {
+                attendanceRecord[date][empId] = { status: 'Absent', clockIn: null, clockOut: null, hours: 0 };
+                showToast(`Marked Absent! Record locked.`);
+            }
+
+            saveData();
+            renderAttendance();
+            updateDashboard();
+        }
+
+        function quickMarkAttendance() {
+            const idInput = document.getElementById('quickEmpId').value.trim().toUpperCase();
+            const date = document.getElementById('attendanceDate').value || new Date().toISOString().slice(0,10);
+            
+            const emp = employees.find(e => e.empId.toUpperCase() === idInput);
+            
+            if (!emp) {
+                showToast(`Employee ID ${idInput} not found!`, 'error');
+                document.getElementById('quickEmpId').value = '';
+                return;
+            }
+
+            if (!attendanceRecord[date]) attendanceRecord[date] = {};
+            const currentRecord = attendanceRecord[date][emp.id];
+            const status = currentRecord ? currentRecord.status : 'Not Marked';
+
+            if (status === 'Not Marked') {
+                markStatus(emp.id, 'ClockIn');
+            } else if (status === 'Clocked In') {
+                markStatus(emp.id, 'ClockOut');
+            } else {
+                showToast(`${emp.name} is already ${status}`, 'error');
+            }
+
+            document.getElementById('quickEmpId').value = '';
+            document.getElementById('quickEmpId').focus();
+        }
+
+        function markAllPresent() {
+            const date = document.getElementById('attendanceDate').value;
+            if (employees.length === 0) return;
+            if (!attendanceRecord[date]) attendanceRecord[date] = {};
+            
+            let count = 0;
+            employees.forEach(e => {
+                if(!attendanceRecord[date][e.id]) {
+                    attendanceRecord[date][e.id] = { status: 'Clocked In', clockIn: Date.now(), clockOut: null, hours: 0 };
+                    count++;
+                }
+            });
+            saveData();
+            renderAttendance();
+            updateDashboard();
+            if(count > 0) showToast(`Clocked In ${count} employees!`);
+        }
+
+        function renderAttendance() {
+            const date = document.getElementById('attendanceDate').value;
+            const tbody = document.getElementById('attendanceBody');
+            tbody.innerHTML = '';
+            const todayData = attendanceRecord[date] || {};
+
+            employees.forEach((emp) => {
+                const rec = todayData[emp.id];
+                const status = rec ? rec.status : 'Not Marked';
+
+                const checkInTimeStr = (rec && rec.clockIn) 
+                    ? new Date(rec.clockIn).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
+                    : '--';
+
+                const checkOutTimeStr = (rec && rec.clockOut) 
+                    ? new Date(rec.clockOut).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
+                    : '--';
+                
+                let badgeHTML = `<span class="whitespace-nowrap px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">Pending</span>`;
+                let actionsHTML = '';
+
+                if (status === 'Not Marked') {
+                    actionsHTML = `
+                        <button onclick="markStatus('${emp.id}', 'ClockIn')" class="bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-emerald-600 transition-all w-24">P (In)</button>
+                        <button onclick="markStatus('${emp.id}', 'Absent')" class="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-slate-300 transition-all w-24 border border-slate-300">A (Absent)</button>
+                    `;
+                } else if (status === 'Clocked In') {
+                    badgeHTML = `<span class="whitespace-nowrap px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Working</span>`;
+                    actionsHTML = `
+                        <button onclick="markStatus('${emp.id}', 'ClockOut')" class="bg-rose-500 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-rose-600 transition-all w-48 border-2 border-rose-600 pulse-btn"><i class="fa-solid fa-right-from-bracket"></i> Clock Out (Leave)</button>
+                    `;
+                } else if (status === 'Completed') {
+                    badgeHTML = `<span class="whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300"><i class="fa-solid fa-check-double mr-1"></i> Done (${formatHours(rec.hours)})</span>`;
+                    actionsHTML = `<span class="text-sm text-slate-400 font-bold bg-slate-100 px-4 py-2 rounded-lg border border-slate-200"><i class="fa-solid fa-lock text-slate-400"></i> Locked</span>`;
+                } else if (status === 'Absent') {
+                    badgeHTML = `<span class="whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200"><i class="fa-solid fa-xmark mr-1"></i> Absent</span>`;
+                    actionsHTML = `<span class="text-sm text-slate-400 font-bold bg-slate-100 px-4 py-2 rounded-lg border border-slate-200"><i class="fa-solid fa-lock text-slate-400"></i> Locked</span>`;
+                }
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition-colors att-row border-b border-slate-100">
+                        <td class="py-3 px-6">
+                            <div class="flex items-center gap-3">
+                                <img src="${generateAvatar(emp.name)}" class="w-10 h-10 rounded-full cursor-pointer hover:ring-2 ring-indigo-200 transition-all" alt="Avatar" onclick="openProfile('${emp.id}')" title="View Profile">
+                                <div>
+                                    <p class="font-semibold text-slate-800 emp-name cursor-pointer hover:text-indigo-600 transition-colors" onclick="openProfile('${emp.id}')">${emp.name}</p>
+                                    <p class="text-xs text-slate-500">${emp.empId}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-3 px-6 text-center font-semibold text-slate-700">${checkInTimeStr}</td>
+                        <td class="py-3 px-6 text-center whitespace-nowrap">${badgeHTML}</td>
+                        <td class="py-3 px-6 text-center font-semibold text-slate-700">${checkOutTimeStr}</td>
+                        <td class="py-3 px-6 text-center">
+                            <div class="flex items-center justify-center gap-2">
+                                ${actionsHTML}
+                            </div>
+                        </td>
+                    </tr>`;
+            });
+        }
+
+        function filterAttendance() {
+            const val = document.getElementById('searchBox').value.toUpperCase();
+            document.querySelectorAll('.att-row').forEach(row => {
+                const name = row.querySelector('.emp-name').innerText.toUpperCase();
+                row.style.display = name.includes(val) ? '' : 'none';
+            });
+        }
+
+        // --- DASHBOARD MATHS & CARD TOGGLE ---
+        function toggleHoursCard() {
+            hoursCardMode = (hoursCardMode === 'month') ? 'today' : 'month';
+            updateDashboard();
+        }
+
+        function updateDashboard() {
+            const todayStr = document.getElementById('attendanceDate').value || new Date().toISOString().slice(0,10);
+            const currentMonthStr = todayStr.slice(0,7);
+            const todayData = attendanceRecord[todayStr] || {};
+
+            document.getElementById('statTotalEmp').innerText = employees.length;
+
+            let workingOrDone = 0, absent = 0, todayTotalHours = 0;
+            Object.values(todayData).forEach(rec => {
+                if(rec.status === 'Clocked In' || rec.status === 'Completed') workingOrDone++;
+                if(rec.status === 'Absent') absent++;
+                if(rec.status === 'Completed' && rec.hours) {
+                    todayTotalHours += parseFloat(rec.hours);
+                }
+            });
+
+            document.getElementById('statTodayPresent').innerText = workingOrDone;
+            document.getElementById('statTodayAbsent').innerText = absent;
+
+            const cardValEl = document.getElementById('statMonthHours');
+            const cardLblEl = document.getElementById('statHoursLabel');
+
+            if (hoursCardMode === 'today') {
+                cardValEl.innerText = formatHours(todayTotalHours);
+                cardLblEl.innerText = "Total Time Logged (Today)";
+            } else {
+                const monthReport = calculateMonthlyStats(currentMonthStr);
+                cardValEl.innerText = formatHours(monthReport.grandTotalHours);
+                cardLblEl.innerText = "Total Time Logged (This Month)";
+            }
+        }
+
+        function calculateMonthlyStats(monthKey) {
+            const stats = {};
+            employees.forEach(e => { stats[e.id] = { name: e.name, empId: e.empId, daysWorked: 0, absent: 0, totalHours: 0 }; });
+
+            let grandTotalHours = 0;
+            const daysInRecord = Object.keys(attendanceRecord).filter(d => d.startsWith(monthKey));
+
+            daysInRecord.forEach(dateStr => {
+                const dayObj = attendanceRecord[dateStr];
+                Object.keys(dayObj).forEach(empId => {
+                    if(stats[empId]) {
+                        const rec = dayObj[empId];
+                        if(rec.status === 'Completed') { 
+                            stats[empId].daysWorked++; 
+                            stats[empId].totalHours += parseFloat(rec.hours || 0);
+                            grandTotalHours += parseFloat(rec.hours || 0);
+                        }
+                        if(rec.status === 'Absent') { stats[empId].absent++; }
+                    }
+                });
+            });
+
+            return { stats, grandTotalHours };
+        }
+
+        // --- REPORTS & EXPORT ---
+        function renderReport() {
+            const month = document.getElementById('reportMonth').value;
+            const data = calculateMonthlyStats(month);
+            const tbody = document.getElementById('reportTableBody');
+            tbody.innerHTML = '';
+
+            Object.values(data.stats).forEach(s => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100">
+                        <td class="py-3 px-6">
+                            <div class="font-semibold text-slate-800">${s.name}</div>
+                            <div class="text-xs text-slate-500">${s.empId}</div>
+                        </td>
+                        <td class="py-3 px-6 text-center text-emerald-600 font-bold bg-emerald-50/30">${s.daysWorked}</td>
+                        <td class="py-3 px-6 text-center text-rose-600 font-bold bg-rose-50/30">${s.absent}</td>
+                        <td class="py-3 px-6 text-center font-black text-indigo-700 text-lg bg-indigo-50/50">${formatHours(s.totalHours)}</td>
+                    </tr>`;
+            });
+        }
+
+        function exportCSV() {
+            const month = document.getElementById('reportMonth').value;
+            const data = calculateMonthlyStats(month);
+            let csv = 'Emp ID,Employee Name,Days Worked,Absent,Total Time Logged\n';
+
+            Object.values(data.stats).forEach(s => {
+                csv += `"${s.empId}","${s.name}",${s.daysWorked},${s.absent},"${formatHours(s.totalHours)}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `AttendOS_Hours_${month}.csv`);
+            a.click();
+            showToast("Hours Report Exported!");
+        }
+
+        function saveData() {
+            localStorage.setItem('pro_employees_v2', JSON.stringify(employees));
+            localStorage.setItem('pro_attendanceRecord_v2', JSON.stringify(attendanceRecord));
+        }
+
+        // Init
+        updateDashboard();
+        renderAttendance();
+        
+        document.getElementById('quickEmpId').focus();
+    </script>
+</body>
+</html>
