@@ -6,7 +6,9 @@
     <title>Pro Attendance OS | Enterprise Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- html2pdf for Professional PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <style>
         body { 
@@ -58,7 +60,7 @@
                     <i class="fa-solid fa-fingerprint text-white"></i>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold tracking-wide">AttendOS</h1>
+                    <h1 id="companyNameDesktop" class="text-xl font-bold tracking-wide">AttendOS</h1>
                     <p class="text-xs text-indigo-300 font-medium tracking-wider uppercase">Pro Edition</p>
                 </div>
             </div>
@@ -67,7 +69,7 @@
             </button>
         </div>
 
-        <nav class="flex-1 p-5 space-y-2 mt-2 overflow-y-auto">
+        <nav class="flex-1 p-5 space-y-2 mt-2 flex flex-col overflow-y-auto">
             <button onclick="switchTab('dashboard-tab', this)" class="nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl bg-indigo-600/10 text-indigo-400 font-semibold border border-indigo-500/20 transition-all hover:bg-indigo-600 hover:text-white group">
                 <i class="fa-solid fa-chart-pie w-6 text-lg group-hover:scale-110 transition-transform"></i> Dashboard
             </button>
@@ -80,6 +82,12 @@
             <button onclick="switchTab('employee-tab', this)" class="nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-slate-400 font-medium hover:bg-slate-800 hover:text-white transition-all group border border-transparent">
                 <i class="fa-solid fa-users-gear w-6 text-lg group-hover:scale-110 transition-transform"></i> Manage Staff
             </button>
+            
+            <div class="flex-1"></div> <!-- Spacer -->
+
+            <button onclick="checkSettingsPassword(this)" class="nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-slate-400 font-medium hover:bg-slate-800 hover:text-white transition-all group border border-transparent mt-4 bg-slate-800/50">
+                <i class="fa-solid fa-gear w-6 text-lg group-hover:rotate-90 transition-transform duration-300"></i> Settings
+            </button>
         </nav>
     </aside>
 
@@ -90,7 +98,7 @@
                 <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-sm shadow-md">
                     <i class="fa-solid fa-fingerprint text-white"></i>
                 </div>
-                <h1 class="text-lg font-bold text-slate-800">AttendOS</h1>
+                <h1 id="companyNameMobile" class="text-lg font-bold text-slate-800">AttendOS</h1>
             </div>
             <button onclick="toggleMobileMenu()" class="text-slate-600 hover:bg-slate-100 p-2 rounded-lg transition-colors border border-slate-200">
                 <i class="fa-solid fa-bars text-xl"></i>
@@ -100,6 +108,7 @@
         <div class="flex-1 overflow-y-auto p-6 md:p-8 lg:p-10 scroll-smooth">
             <div class="max-w-7xl mx-auto">
 
+                <!-- DASHBOARD -->
                 <div id="dashboard-tab" class="fade-in space-y-8 block">
                     <div class="flex justify-between items-end mb-6">
                         <div>
@@ -172,6 +181,7 @@
                     </div>
                 </div>
 
+                <!-- ATTENDANCE TAB -->
                 <div id="attendance-tab" class="hidden-section fade-in">
                     <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
                         <div class="p-6 md:p-8 border-b border-slate-100 bg-slate-50/50">
@@ -214,6 +224,7 @@
                     </div>
                 </div>
 
+                <!-- REPORT TAB -->
                 <div id="report-tab" class="hidden-section fade-in">
                     <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
                         <div class="p-6 md:p-8 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
@@ -229,6 +240,9 @@
                                 <button onclick="exportCSV()" class="flex-1 md:flex-none bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white px-5 py-2.5 rounded-xl font-medium shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center gap-2">
                                     <i class="fa-solid fa-file-csv"></i> Export CSV
                                 </button>
+                                <button onclick="exportPDF()" class="flex-1 md:flex-none bg-rose-500 hover:bg-rose-600 active:scale-95 text-white px-5 py-2.5 rounded-xl font-medium shadow-md shadow-rose-500/20 transition-all flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-file-pdf"></i> Export PDF
+                                </button>
                             </div>
                         </div>
 
@@ -237,7 +251,8 @@
                                 <thead class="bg-slate-50 border-y border-slate-200 text-slate-500 text-xs font-semibold uppercase tracking-wider sticky top-0">
                                     <tr>
                                         <th class="py-4 px-6">Name</th>
-                                        <th class="py-4 px-6 text-center">Days Worked</th>
+                                        <th class="py-4 px-6 text-center">Full Days</th>
+                                        <th class="py-4 px-6 text-center">Half Days</th>
                                         <th class="py-4 px-6 text-center">Absent</th>
                                         <th class="py-4 px-6 text-center text-indigo-600 bg-indigo-50/30">Total Time Logged</th>
                                     </tr>
@@ -248,6 +263,7 @@
                     </div>
                 </div>
 
+                <!-- EMPLOYEE TAB -->
                 <div id="employee-tab" class="hidden-section fade-in">
                     <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
                         <div class="p-6 md:p-8 border-b border-slate-100 bg-slate-50/50">
@@ -329,10 +345,160 @@
                     </div>
                 </div>
 
+                <!-- SETTINGS TAB -->
+                <div id="settings-tab" class="hidden-section fade-in space-y-6 block">
+                    <h2 class="text-3xl font-bold text-slate-900 tracking-tight mb-2">Admin Settings</h2>
+                    
+                    <!-- Company Profile -->
+                    <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200">
+                        <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-building text-slate-400"></i> Company & Display Profile
+                        </h3>
+                        <div class="flex flex-col md:flex-row gap-4 items-end">
+                            <div class="flex-1 w-full">
+                                <label class="block text-sm font-semibold text-slate-600 mb-1">Company Name</label>
+                                <input type="text" id="settingCompanyName" class="form-input" placeholder="e.g. MUNNA BHAI">
+                            </div>
+                            <div class="flex-1 w-full">
+                                <label class="block text-sm font-semibold text-slate-600 mb-1">Time Format</label>
+                                <select id="settingTimeFormat" class="form-input">
+                                    <option value="12">12-Hour (AM/PM)</option>
+                                    <option value="24">24-Hour (Military)</option>
+                                </select>
+                            </div>
+                            <button onclick="saveCompanyProfile()" class="w-full md:w-auto bg-slate-900 hover:bg-black active:scale-95 text-white px-8 py-3 rounded-xl font-medium shadow-md transition-all">
+                                Save Profile
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 🏆 Winner / Performance OPTION -->
+                    <div class="bg-gradient-to-br from-amber-500/5 via-yellow-500/10 to-amber-500/5 rounded-3xl p-6 md:p-8 shadow-sm border border-amber-300 relative">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                            <div>
+                                <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                    <i class="fa-solid fa-trophy text-amber-500"></i> 🏆 Winner / Performance
+                                </h3>
+                                <p class="text-slate-500 text-sm mt-1">View Employee of the Month and top performers based on total hours logged and attendance.</p>
+                            </div>
+                            <div class="flex items-center gap-3 w-full md:w-auto">
+                                <input type="month" id="winnerMonth" class="form-input border-amber-300 focus:border-amber-500 bg-white" onchange="resetWinnerView()">
+                                <button onclick="revealWinner()" class="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white font-bold px-6 py-3 rounded-xl shadow-md transition-all flex items-center gap-2 whitespace-nowrap active:scale-95">
+                                    <i class="fa-solid fa-lock text-sm" id="winnerLockIcon"></i> View Winner
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Locked Placeholder State -->
+                        <div id="winnerLockedState" class="bg-white/80 backdrop-blur-sm border-2 border-dashed border-amber-200 rounded-2xl p-8 text-center">
+                            <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl shadow-sm ring-4 ring-amber-50">
+                                <i class="fa-solid fa-trophy"></i>
+                            </div>
+                            <h4 class="text-lg font-bold text-slate-800 mb-1">Performance Winner Protected</h4>
+                            <p class="text-sm text-slate-500 max-w-md mx-auto">Click <b>"View Winner"</b> and enter Admin Password to unlock performance statistics & Employee of the Month leaderboard.</p>
+                        </div>
+
+                        <!-- Unlocked Winner Display Area -->
+                        <div id="winnerDisplayArea" class="hidden">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Attendance Correction -->
+                    <div class="bg-amber-50/50 rounded-3xl p-6 md:p-8 shadow-sm border border-amber-200 relative">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold text-amber-900 flex items-center gap-2">
+                                <i class="fa-solid fa-pen-to-square text-amber-500"></i> Attendance Correction (Admin Override)
+                            </h3>
+                            <button onclick="openAuditLog()" class="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2">
+                                <i class="fa-solid fa-clock-rotate-left"></i> Audit Log
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                            <div>
+                                <label class="block text-sm font-semibold text-amber-800 mb-1">Date</label>
+                                <input type="date" id="corrDate" class="form-input border-amber-200 focus:border-amber-500 bg-white" onchange="populateCorrectionForm()">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-amber-800 mb-1">Employee</label>
+                                <select id="corrEmp" class="form-input border-amber-200 focus:border-amber-500 bg-white" onchange="populateCorrectionForm()">
+                                    <option value="" disabled selected>Select Employee</option>
+                                    <!-- Populated dynamically -->
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-amber-800 mb-1">Check-in</label>
+                                <input type="time" id="corrIn" class="form-input border-amber-200 focus:border-amber-500 bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-amber-800 mb-1">Check-out</label>
+                                <input type="time" id="corrOut" class="form-input border-amber-200 focus:border-amber-500 bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-amber-800 mb-1">Force Status</label>
+                                <select id="corrStatus" class="form-input border-amber-200 focus:border-amber-500 bg-white">
+                                    <option value="Auto Calculate">Auto Calculate</option>
+                                    <option value="Full Day">Full Day</option>
+                                    <option value="Half Day">Half Day</option>
+                                    <option value="Absent">Absent</option>
+                                    <option value="Holiday">Holiday</option>
+                                    <option value="Not Marked">Clear (Not Marked)</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-5 flex justify-end mt-2">
+                                <button onclick="applyCorrection()" class="bg-amber-500 hover:bg-amber-600 active:scale-95 text-white px-8 py-3 rounded-xl font-bold shadow-md shadow-amber-500/20 transition-all">
+                                    Apply Correction
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Declare Holiday -->
+                    <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-orange-200">
+                        <h3 class="text-xl font-bold text-orange-800 mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-umbrella-beach text-orange-500"></i> Declare Holiday
+                        </h3>
+                        <div class="flex flex-col md:flex-row gap-4 items-end mb-6">
+                            <div class="flex-1 w-full">
+                                <label class="block text-sm font-semibold text-orange-800 mb-1">Holiday Reason / Occasion</label>
+                                <input type="text" id="holReason" class="form-input border-orange-200 focus:border-orange-500" placeholder="e.g. Diwali, Sunday, National Holiday">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-orange-800 mb-1">From Date</label>
+                                <input type="date" id="holFrom" class="form-input border-orange-200 focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-orange-800 mb-1">To Date</label>
+                                <input type="date" id="holTo" class="form-input border-orange-200 focus:border-orange-500">
+                            </div>
+                            <button onclick="addHoliday()" class="w-full md:w-auto bg-orange-500 hover:bg-orange-600 active:scale-95 text-white px-8 py-3 rounded-xl font-bold shadow-md shadow-orange-500/20 transition-all">
+                                Mark Holiday
+                            </button>
+                        </div>
+                        
+                        <!-- Holiday List -->
+                        <div class="overflow-x-auto rounded-xl border border-slate-100">
+                            <table class="min-w-full text-left bg-slate-50">
+                                <thead class="bg-slate-100 text-slate-500 text-xs font-bold uppercase tracking-wider">
+                                    <tr>
+                                        <th class="py-3 px-4">Occasion</th>
+                                        <th class="py-3 px-4">From</th>
+                                        <th class="py-3 px-4">To</th>
+                                        <th class="py-3 px-4 text-right">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="holidayListBody" class="divide-y divide-slate-200 bg-white text-sm font-medium text-slate-700">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </main>
 
+    <!-- Modals -->
     <div id="profileModal" class="fixed inset-0 bg-slate-900/60 hidden z-50 flex items-center justify-center backdrop-blur-sm transition-opacity" onclick="closeProfileModal(event)">
         <div class="bg-white rounded-3xl p-6 md:p-8 w-full max-w-lg relative shadow-2xl transform transition-transform scale-95" id="profileModalContent">
             <button onclick="closeProfile()" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors">
@@ -359,19 +525,79 @@
         </div>
     </div>
 
+    <!-- Audit Log Modal -->
+    <div id="auditLogModal" class="fixed inset-0 bg-slate-900/60 hidden z-50 flex items-center justify-center backdrop-blur-sm transition-opacity" onclick="closeAuditLogEvent(event)">
+        <div class="bg-white rounded-3xl p-6 md:p-8 w-full max-w-3xl relative shadow-2xl transform transition-transform scale-95" id="auditLogModalContent">
+            <button onclick="closeAuditLog()" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h3 class="text-2xl font-bold text-slate-900 mb-4"><i class="fa-solid fa-clock-rotate-left text-amber-500"></i> Correction Audit Log</h3>
+            <div class="overflow-y-auto max-h-96 rounded-xl border border-slate-200">
+                <table class="min-w-full text-left bg-white text-sm">
+                    <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase sticky top-0">
+                        <tr>
+                            <th class="py-3 px-4">Timestamp</th>
+                            <th class="py-3 px-4">Date Adjusted</th>
+                            <th class="py-3 px-4">Employee</th>
+                            <th class="py-3 px-4">Changes Applied</th>
+                        </tr>
+                    </thead>
+                    <tbody id="auditLogBody" class="divide-y divide-slate-100 font-medium text-slate-700">
+                        <!-- Populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Prompt Modal -->
+    <div id="passwordModal" class="fixed inset-0 bg-slate-900/60 hidden z-[70] flex items-center justify-center backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-3xl p-6 md:p-8 w-full max-w-sm relative shadow-2xl transform scale-100">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-500 text-2xl">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-2">Admin Authentication</h3>
+                <p class="text-slate-500 mb-6 font-medium text-sm" id="passwordMessage">Enter Password:</p>
+                
+                <input type="password" id="passwordInput" class="w-full bg-slate-50 border border-slate-200 text-slate-700 py-3 px-4 rounded-xl outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 font-medium transition-all shadow-sm mb-6 text-center text-lg tracking-widest" placeholder="••••••••">
+                
+                <div class="flex gap-3">
+                    <button id="passwordCancelBtn" class="flex-1 bg-slate-100 text-slate-700 hover:bg-slate-200 py-3 rounded-xl font-semibold transition-colors">Cancel</button>
+                    <button id="passwordSubmitBtn" class="flex-1 bg-indigo-600 text-white hover:bg-indigo-700 py-3 rounded-xl font-semibold transition-colors shadow-lg shadow-indigo-600/30">Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="toast-container"></div>
 
     <script>
         // --- 1. SETUP & DATA LOGIC ---
         let employees = JSON.parse(localStorage.getItem('pro_employees_v2')) || [];
         let attendanceRecord = JSON.parse(localStorage.getItem('pro_attendanceRecord_v2')) || {};
+        let sysSettings = JSON.parse(localStorage.getItem('pro_settings_v3')) || { companyName: 'AttendOS', timeFormat: '12' };
+        let holidays = JSON.parse(localStorage.getItem('pro_holidays_v3')) || [];
+        let auditLogs = JSON.parse(localStorage.getItem('pro_auditLog_v3')) || [];
+        
         let hoursCardMode = 'month'; // Default is always 'month'
+        let isWinnerUnlocked = false;
 
         document.getElementById('attendanceDate').valueAsDate = new Date();
         document.getElementById('reportMonth').value = new Date().toISOString().slice(0,7);
+        document.getElementById('winnerMonth').value = new Date().toISOString().slice(0,7);
         
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         document.getElementById('currentDateDisplay').innerText = new Date().toLocaleDateString('en-US', options);
+
+        function initSystem() {
+            document.getElementById('companyNameDesktop').innerText = sysSettings.companyName;
+            document.getElementById('companyNameMobile').innerText = sysSettings.companyName;
+            document.getElementById('settingCompanyName').value = sysSettings.companyName;
+            document.getElementById('settingTimeFormat').value = sysSettings.timeFormat;
+            populateEmpDropdown();
+            renderHolidays();
+        }
 
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
@@ -397,7 +623,7 @@
         }
 
         function switchTab(tabId, btnElement) {
-            ['dashboard-tab', 'attendance-tab', 'report-tab', 'employee-tab'].forEach(id => {
+            ['dashboard-tab', 'attendance-tab', 'report-tab', 'employee-tab', 'settings-tab'].forEach(id => {
                 document.getElementById(id).classList.remove('block');
                 document.getElementById(id).classList.add('hidden-section');
             });
@@ -407,21 +633,68 @@
             if(btnElement) {
                 document.querySelectorAll('.nav-btn').forEach(btn => {
                     btn.className = 'nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-slate-400 font-medium hover:bg-slate-800 hover:text-white transition-all group border border-transparent';
+                    if(btn.innerText.includes("Settings")) btn.classList.add('mt-4', 'bg-slate-800/50');
                 });
+                
                 btnElement.className = 'nav-btn w-full flex items-center gap-4 px-4 py-3.5 rounded-xl bg-indigo-600/10 text-indigo-400 font-semibold border border-indigo-500/20 transition-all hover:bg-indigo-600 hover:text-white group';
+                if(btnElement.innerText.includes("Settings")) btnElement.classList.add('mt-4');
             }
 
             if(window.innerWidth < 1024 && !document.getElementById('sidebar').classList.contains('-translate-x-full')) {
                 toggleMobileMenu();
             }
 
-            if (tabId === 'dashboard-tab') {
-                updateDashboard();
-                document.getElementById('quickEmpId').focus();
-            }
+            if (tabId === 'dashboard-tab') { updateDashboard(); document.getElementById('quickEmpId').focus(); }
             if (tabId === 'attendance-tab') renderAttendance();
             if (tabId === 'report-tab') renderReport();
             if (tabId === 'employee-tab') renderEmployees();
+        }
+
+        // --- PASSWORD MODAL PROMISE ---
+        function askPassword(message) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('passwordModal');
+                const input = document.getElementById('passwordInput');
+                const msgEl = document.getElementById('passwordMessage');
+                const submitBtn = document.getElementById('passwordSubmitBtn');
+                const cancelBtn = document.getElementById('passwordCancelBtn');
+
+                msgEl.innerText = message;
+                input.value = '';
+                modal.classList.remove('hidden');
+                setTimeout(() => input.focus(), 50);
+
+                const cleanup = () => {
+                    submitBtn.onclick = null;
+                    cancelBtn.onclick = null;
+                    input.onkeyup = null;
+                    modal.classList.add('hidden');
+                };
+
+                submitBtn.onclick = () => {
+                    const val = input.value;
+                    cleanup();
+                    resolve(val);
+                };
+                cancelBtn.onclick = () => {
+                    cleanup();
+                    resolve(null);
+                };
+                input.onkeyup = (e) => {
+                    if (e.key === 'Enter') submitBtn.click();
+                    if (e.key === 'Escape') cancelBtn.click();
+                };
+            });
+        }
+
+        async function checkSettingsPassword(btn) {
+            const pwd = await askPassword("Enter Admin Password:");
+            if (pwd === "244601") {
+                switchTab('settings-tab', btn);
+                populateEmpDropdown();
+            } else if (pwd !== null) {
+                showToast("Incorrect Password! Access Denied.", "error");
+            }
         }
 
         function generateAvatar(name) {
@@ -437,6 +710,390 @@
             if (h > 0) res.push(h + " hr" + (h > 1 ? "s" : ""));
             if (m > 0 || (h === 0 && m === 0)) res.push(m + " min" + (m !== 1 ? "s" : ""));
             return res.join(" ");
+        }
+
+        function formatTimeDisplay(timestamp) {
+            if(!timestamp) return '--';
+            const date = new Date(timestamp);
+            if(sysSettings.timeFormat === '24') {
+                return date.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute:'2-digit' });
+            } else {
+                return date.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute:'2-digit' });
+            }
+        }
+
+        function checkHoliday(dateStr) {
+            return holidays.find(h => dateStr >= h.from && dateStr <= h.to);
+        }
+
+        // --- WINNER / PERFORMANCE LOGIC ---
+        function resetWinnerView() {
+            isWinnerUnlocked = false;
+            document.getElementById('winnerDisplayArea').classList.add('hidden');
+            document.getElementById('winnerLockedState').classList.remove('hidden');
+            document.getElementById('winnerLockIcon').className = "fa-solid fa-lock text-sm";
+        }
+
+        async function revealWinner() {
+            if (!isWinnerUnlocked) {
+                const pwd = await askPassword("Enter Admin Password to view Winner / Performance:");
+                if (pwd !== "244601") {
+                    if (pwd !== null) showToast("Incorrect Admin Password!", "error");
+                    return;
+                }
+                isWinnerUnlocked = true;
+            }
+            document.getElementById('winnerLockIcon').className = "fa-solid fa-lock-open text-sm";
+            document.getElementById('winnerLockedState').classList.add('hidden');
+            document.getElementById('winnerDisplayArea').classList.remove('hidden');
+            calculateAndRenderWinner();
+        }
+
+        function calculateAndRenderWinner() {
+            const month = document.getElementById('winnerMonth').value || new Date().toISOString().slice(0, 7);
+            const data = calculateMonthlyStats(month);
+            const container = document.getElementById('winnerDisplayArea');
+            
+            const sorted = Object.values(data.stats).sort((a, b) => {
+                if (b.totalHours !== a.totalHours) return b.totalHours - a.totalHours;
+                if (b.fullDays !== a.fullDays) return b.fullDays - a.fullDays;
+                return a.absent - b.absent;
+            });
+
+            if (sorted.length === 0 || sorted.every(s => s.totalHours === 0 && s.fullDays === 0)) {
+                container.innerHTML = `
+                    <div class="text-center py-8 bg-white/80 rounded-2xl border border-slate-200">
+                        <i class="fa-solid fa-chart-line text-slate-300 text-4xl mb-3"></i>
+                        <p class="text-slate-500 font-semibold">No performance data recorded for ${month}.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const winner = sorted[0];
+
+            let html = `
+                <div class="bg-gradient-to-br from-amber-500/10 via-yellow-500/5 to-amber-500/10 border-2 border-amber-300/80 rounded-2xl p-6 md:p-8 mb-6 relative overflow-hidden shadow-sm">
+                    
+                    <!-- Action Buttons -->
+                    <div class="absolute top-4 right-4 flex gap-2 z-20">
+                        <button onclick="exportWinnerCSV()" class="export-btn-winner bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs md:text-sm font-bold shadow-md transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-file-csv"></i> CSV
+                        </button>
+                        <button onclick="exportWinnerPDF()" class="export-btn-winner bg-rose-500 hover:bg-rose-600 active:scale-95 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs md:text-sm font-bold shadow-md transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-file-pdf"></i> PDF
+                        </button>
+                    </div>
+
+                    <div class="absolute -right-6 -bottom-6 opacity-10 text-amber-600 text-9xl pointer-events-none">
+                        <i class="fa-solid fa-crown"></i>
+                    </div>
+                    
+                    <div class="flex flex-col md:flex-row items-center gap-6 relative z-10 mt-4 md:mt-0">
+                        <div class="relative">
+                            <img src="${generateAvatar(winner.name)}" class="w-24 h-24 rounded-full ring-4 ring-amber-400 shadow-xl" alt="Winner Avatar">
+                            <div class="absolute -top-3 -right-2 bg-amber-500 text-white w-9 h-9 rounded-full flex items-center justify-center text-lg font-black shadow-md border-2 border-white">
+                                🏆
+                            </div>
+                        </div>
+                        
+                        <div class="text-center md:text-left flex-1">
+                            <div class="inline-flex items-center gap-2 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-2 shadow-sm">
+                                🏆 Winner / Employee of the Month
+                            </div>
+                            <h4 class="text-2xl md:text-3xl font-extrabold text-slate-900">${winner.name}</h4>
+                            <p class="text-indigo-600 font-semibold text-sm">Employee ID: #${winner.empId}</p>
+                            
+                            <div class="grid grid-cols-3 gap-3 mt-4 max-w-lg">
+                                <div class="bg-white/90 backdrop-blur-sm p-3 rounded-xl border border-amber-200 text-center shadow-sm">
+                                    <span class="block text-xs text-slate-500 font-semibold">Total Time</span>
+                                    <span class="text-lg font-black text-amber-600">${formatHours(winner.totalHours)}</span>
+                                </div>
+                                <div class="bg-white/90 backdrop-blur-sm p-3 rounded-xl border border-amber-200 text-center shadow-sm">
+                                    <span class="block text-xs text-slate-500 font-semibold">Full Days</span>
+                                    <span class="text-lg font-black text-emerald-600">${winner.fullDays}</span>
+                                </div>
+                                <div class="bg-white/90 backdrop-blur-sm p-3 rounded-xl border border-amber-200 text-center shadow-sm">
+                                    <span class="block text-xs text-slate-500 font-semibold">Half Days</span>
+                                    <span class="text-lg font-black text-amber-600">${winner.halfDays}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            if (sorted.length > 1) {
+                html += `
+                    <h5 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-list-ol text-amber-500"></i> Monthly Performance Leaderboard (${month})
+                    </h5>
+                    <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+                        <table class="min-w-full text-left bg-white text-sm">
+                            <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase">
+                                <tr>
+                                    <th class="py-3 px-4 text-center">Rank</th>
+                                    <th class="py-3 px-4">Employee</th>
+                                    <th class="py-3 px-4 text-center">Full Days</th>
+                                    <th class="py-3 px-4 text-center">Half Days</th>
+                                    <th class="py-3 px-4 text-center">Absent</th>
+                                    <th class="py-3 px-4 text-center">Total Hours</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 font-medium">
+                `;
+
+                sorted.forEach((s, idx) => {
+                    let rankBadge = `<span class="font-bold text-slate-500">#${idx + 1}</span>`;
+                    if (idx === 0) rankBadge = `<span class="text-xl">🥇</span>`;
+                    else if (idx === 1) rankBadge = `<span class="text-xl">🥈</span>`;
+                    else if (idx === 2) rankBadge = `<span class="text-xl">🥉</span>`;
+
+                    html += `
+                        <tr class="hover:bg-slate-50 ${idx === 0 ? 'bg-amber-50/40 font-semibold' : ''}">
+                            <td class="py-3 px-4 text-center">${rankBadge}</td>
+                            <td class="py-3 px-4">
+                                <div class="font-bold text-slate-800">${s.name}</div>
+                                <div class="text-xs text-slate-400">#${s.empId}</div>
+                            </td>
+                            <td class="py-3 px-4 text-center text-emerald-600 font-bold">${s.fullDays}</td>
+                            <td class="py-3 px-4 text-center text-amber-600 font-bold">${s.halfDays}</td>
+                            <td class="py-3 px-4 text-center text-rose-600 font-bold">${s.absent}</td>
+                            <td class="py-3 px-4 text-center text-indigo-700 font-black">${formatHours(s.totalHours)}</td>
+                        </tr>
+                    `;
+                });
+
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        // --- SETTINGS LOGIC ---
+        function saveCompanyProfile() {
+            sysSettings.companyName = document.getElementById('settingCompanyName').value.trim() || 'AttendOS';
+            sysSettings.timeFormat = document.getElementById('settingTimeFormat').value;
+            
+            localStorage.setItem('pro_settings_v3', JSON.stringify(sysSettings));
+            initSystem();
+            renderAttendance(); 
+            showToast("Company Profile updated!");
+        }
+
+        function addHoliday() {
+            const reason = document.getElementById('holReason').value.trim();
+            const from = document.getElementById('holFrom').value;
+            const to = document.getElementById('holTo').value;
+
+            if(!reason || !from || !to) {
+                showToast("Fill all holiday fields!", "error");
+                return;
+            }
+            if(from > to) {
+                showToast("From date cannot be after To date!", "error");
+                return;
+            }
+
+            holidays.push({ id: Date.now().toString(), reason, from, to });
+            localStorage.setItem('pro_holidays_v3', JSON.stringify(holidays));
+            
+            document.getElementById('holReason').value = '';
+            document.getElementById('holFrom').value = '';
+            document.getElementById('holTo').value = '';
+            
+            renderHolidays();
+            renderAttendance();
+            updateDashboard();
+            showToast("Holiday declared successfully!");
+        }
+
+        function removeHoliday(id) {
+            holidays = holidays.filter(h => h.id !== id);
+            localStorage.setItem('pro_holidays_v3', JSON.stringify(holidays));
+            renderHolidays();
+            renderAttendance();
+            updateDashboard();
+            showToast("Holiday removed.");
+        }
+
+        function renderHolidays() {
+            const tbody = document.getElementById('holidayListBody');
+            tbody.innerHTML = '';
+            if(holidays.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-slate-400">No holidays declared yet.</td></tr>`;
+                return;
+            }
+            holidays.sort((a, b) => new Date(b.from) - new Date(a.from)).forEach(h => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-100 transition-colors">
+                        <td class="py-3 px-4">${h.reason}</td>
+                        <td class="py-3 px-4">${h.from}</td>
+                        <td class="py-3 px-4">${h.to}</td>
+                        <td class="py-3 px-4 text-right">
+                            <button onclick="removeHoliday('${h.id}')" class="text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1 rounded-lg transition-colors"><i class="fa-solid fa-trash-can"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // --- ATTENDANCE CORRECTION ---
+        function populateEmpDropdown() {
+            const select = document.getElementById('corrEmp');
+            const currentVal = select.value;
+            select.innerHTML = `<option value="" disabled selected>Select Employee</option>`;
+            employees.forEach(e => {
+                select.innerHTML += `<option value="${e.id}">${e.name} (${e.empId})</option>`;
+            });
+            if (currentVal && employees.find(e => e.id === currentVal)) select.value = currentVal;
+        }
+
+        function timestampToHHMM(ts) {
+            if(!ts) return '';
+            const d = new Date(ts);
+            return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        }
+        
+        function HHMMToTimestamp(dateStr, timeStr) {
+            if(!timeStr) return null;
+            return new Date(`${dateStr}T${timeStr}`).getTime();
+        }
+
+        function populateCorrectionForm() {
+            const date = document.getElementById('corrDate').value;
+            const empId = document.getElementById('corrEmp').value;
+            
+            if(!date || !empId) return;
+
+            const rec = (attendanceRecord[date] && attendanceRecord[date][empId]) ? attendanceRecord[date][empId] : null;
+
+            if(rec) {
+                document.getElementById('corrIn').value = timestampToHHMM(rec.clockIn);
+                document.getElementById('corrOut').value = timestampToHHMM(rec.clockOut);
+                document.getElementById('corrStatus').value = "Auto Calculate";
+            } else {
+                document.getElementById('corrIn').value = '';
+                document.getElementById('corrOut').value = '';
+                document.getElementById('corrStatus').value = "Auto Calculate";
+            }
+        }
+
+        function applyCorrection() {
+            const date = document.getElementById('corrDate').value;
+            const empId = document.getElementById('corrEmp').value;
+            const inTimeStr = document.getElementById('corrIn').value;
+            const outTimeStr = document.getElementById('corrOut').value;
+            const forceStatus = document.getElementById('corrStatus').value;
+
+            if(!date || !empId) {
+                showToast("Please select Date and Employee", "error");
+                return;
+            }
+
+            const empName = employees.find(e => e.id === empId).name;
+            const clockInTs = HHMMToTimestamp(date, inTimeStr);
+            const clockOutTs = HHMMToTimestamp(date, outTimeStr);
+            let finalStatus = '';
+            let finalHours = 0;
+
+            if(forceStatus === 'Not Marked') {
+                if(attendanceRecord[date] && attendanceRecord[date][empId]) {
+                    delete attendanceRecord[date][empId];
+                }
+                logAudit(date, empName, "Cleared record (Not Marked)");
+                finalizeCorrection();
+                return;
+            }
+
+            if(forceStatus === 'Absent' || forceStatus === 'Holiday') {
+                if(!attendanceRecord[date]) attendanceRecord[date] = {};
+                attendanceRecord[date][empId] = { status: forceStatus, clockIn: null, clockOut: null, hours: 0 };
+                logAudit(date, empName, `Forced Status: ${forceStatus}`);
+                finalizeCorrection();
+                return;
+            }
+
+            if(clockInTs && clockOutTs) {
+                finalHours = (clockOutTs - clockInTs) / (1000 * 60 * 60);
+                if(finalHours < 0) finalHours = 0;
+            }
+
+            if (forceStatus === 'Auto Calculate') {
+                if(clockInTs && !clockOutTs) {
+                    finalStatus = 'Clocked In';
+                } else if (clockInTs && clockOutTs) {
+                    finalStatus = finalHours >= 5 ? 'Full Day' : 'Half Day';
+                } else {
+                    finalStatus = 'Not Marked';
+                }
+            } else {
+                finalStatus = forceStatus;
+            }
+
+            if(!attendanceRecord[date]) attendanceRecord[date] = {};
+            attendanceRecord[date][empId] = { status: finalStatus, clockIn: clockInTs, clockOut: clockOutTs, hours: finalHours };
+
+            const inStr = inTimeStr || '--';
+            const outStr = outTimeStr || '--';
+            logAudit(date, empName, `In: ${inStr}, Out: ${outStr}, Status: ${finalStatus}`);
+            
+            finalizeCorrection();
+        }
+
+        function finalizeCorrection() {
+            saveData();
+            renderAttendance();
+            updateDashboard();
+            showToast("Correction applied & logged successfully!");
+            document.getElementById('corrIn').value = '';
+            document.getElementById('corrOut').value = '';
+            document.getElementById('corrStatus').value = 'Auto Calculate';
+        }
+
+        function logAudit(dateAdj, empName, changes) {
+            const now = new Date().toLocaleString('en-US');
+            auditLogs.unshift({ timestamp: now, dateAdj, empName, changes });
+            if(auditLogs.length > 100) auditLogs.pop(); 
+            localStorage.setItem('pro_auditLog_v3', JSON.stringify(auditLogs));
+        }
+
+        function openAuditLog() {
+            const tbody = document.getElementById('auditLogBody');
+            tbody.innerHTML = '';
+            if(auditLogs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="py-4 px-4 text-center text-slate-400">No corrections made yet.</td></tr>`;
+            } else {
+                auditLogs.forEach(log => {
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 border-b border-slate-100">
+                            <td class="py-3 px-4 text-xs text-slate-500">${log.timestamp}</td>
+                            <td class="py-3 px-4 font-semibold">${log.dateAdj}</td>
+                            <td class="py-3 px-4">${log.empName}</td>
+                            <td class="py-3 px-4 text-amber-700 bg-amber-50/50">${log.changes}</td>
+                        </tr>
+                    `;
+                });
+            }
+            document.getElementById('auditLogModal').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('auditLogModalContent').classList.remove('scale-95');
+                document.getElementById('auditLogModalContent').classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeAuditLog() {
+            document.getElementById('auditLogModalContent').classList.remove('scale-100');
+            document.getElementById('auditLogModalContent').classList.add('scale-95');
+            setTimeout(() => { document.getElementById('auditLogModal').classList.add('hidden'); }, 200);
+        }
+
+        function closeAuditLogEvent(e) {
+            if(e.target.id === 'auditLogModal') closeAuditLog();
         }
 
         // --- EMPLOYEE MANAGEMENT ---
@@ -455,11 +1112,25 @@
                 return;
             }
 
-            const shortId = Math.floor(1000 + Math.random() * 9000).toString();
+            const isDuplicate = employees.some(e => e.mobile === mobile || (aadhar !== "" && e.aadhar === aadhar));
+            if (isDuplicate) {
+                showToast("Employee Already Exists.", "error");
+                return;
+            }
+
+            let shortId;
+            let empId;
+            let isIdDuplicate = true;
+            
+            while (isIdDuplicate) {
+                shortId = Math.floor(1000 + Math.random() * 9000).toString();
+                empId = `EMP${shortId}`;
+                isIdDuplicate = employees.some(e => e.empId === empId);
+            }
             
             employees.push({ 
                 id: Date.now().toString(), 
-                empId: `EMP${shortId}`, 
+                empId: empId, 
                 name, 
                 fatherName, 
                 motherName, 
@@ -475,17 +1146,19 @@
             document.getElementById('addEmpFormWrapper').classList.add('hidden');
             renderEmployees();
             updateDashboard();
+            populateEmpDropdown(); 
             showToast(`${name} added successfully!`);
         }
 
-        function deleteEmployee(id, name) {
-            const password = prompt(`Enter Admin Password to delete ${name}:`);
+        async function deleteEmployee(id, name) {
+            const password = await askPassword(`Enter Admin Password to delete ${name}:`);
             
             if (password === "244601") {
                 employees = employees.filter(e => e.id !== id);
                 saveData();
                 renderEmployees();
                 updateDashboard();
+                populateEmpDropdown(); 
                 showToast(`${name} removed from system.`);
             } else if (password !== null) {
                 showToast("Incorrect Password! Access Denied.", "error");
@@ -637,11 +1310,16 @@
             const currentRecord = attendanceRecord[date][empId];
 
             currentRecord.clockOut = Date.now();
-            currentRecord.status = 'Completed';
             const diffMs = currentRecord.clockOut - currentRecord.clockIn;
             currentRecord.hours = diffMs / (1000 * 60 * 60);
 
-            showToast(`Clocked Out! Total logged: ${formatHours(currentRecord.hours)}`);
+            if (currentRecord.hours >= 5) {
+                currentRecord.status = 'Full Day';
+            } else {
+                currentRecord.status = 'Half Day';
+            }
+
+            showToast(`Clocked Out! Status: ${currentRecord.status} | Logged: ${formatHours(currentRecord.hours)}`);
             saveData();
             renderAttendance();
             updateDashboard();
@@ -654,8 +1332,8 @@
             
             const currentRecord = attendanceRecord[date][empId];
 
-            if (currentRecord && (currentRecord.status === 'Completed' || currentRecord.status === 'Absent')) {
-                showToast("Action locked! Cannot change data now.", "error");
+            if (currentRecord && (currentRecord.status === 'Full Day' || currentRecord.status === 'Half Day' || currentRecord.status === 'Absent' || currentRecord.status === 'Holiday')) {
+                showToast("Action locked! Edit via Admin Correction.", "error");
                 return;
             }
 
@@ -666,24 +1344,27 @@
             else if (action === 'ClockOut') {
                 if(currentRecord && currentRecord.status === 'Clocked In') {
                     
-                    // 10 MINUTE RESTRICTION LOGIC
                     const diffMs = Date.now() - currentRecord.clockIn;
                     const tenMinsInMs = 10 * 60 * 1000;
 
                     if (diffMs < tenMinsInMs) {
                         const remainingMins = Math.ceil((tenMinsInMs - diffMs) / 60000);
                         showToast(`Check-out will be available after ${remainingMins} minute(s).`, "error");
-                        return; // Prevent check-out
+                        return; 
                     }
 
-                    // Show Confirmation Popup instead of direct Check-out
                     showCheckoutConfirmation(empId);
-                    return; // Actual checkout is handled in executeCheckout()
+                    return; 
                 }
             } 
             else if (action === 'Absent') {
-                attendanceRecord[date][empId] = { status: 'Absent', clockIn: null, clockOut: null, hours: 0 };
-                showToast(`Marked Absent! Record locked.`);
+                if(checkHoliday(date)) {
+                    attendanceRecord[date][empId] = { status: 'Holiday', clockIn: null, clockOut: null, hours: 0 };
+                    showToast(`It's a Holiday! Marked as Holiday instead of Absent.`);
+                } else {
+                    attendanceRecord[date][empId] = { status: 'Absent', clockIn: null, clockOut: null, hours: 0 };
+                    showToast(`Marked Absent! Record locked.`);
+                }
             }
 
             saveData();
@@ -705,12 +1386,16 @@
 
             if (!attendanceRecord[date]) attendanceRecord[date] = {};
             const currentRecord = attendanceRecord[date][emp.id];
-            const status = currentRecord ? currentRecord.status : 'Not Marked';
+            
+            let status = currentRecord ? currentRecord.status : 'Not Marked';
+            if(status === 'Not Marked' && checkHoliday(date)) status = 'Holiday';
 
             if (status === 'Not Marked') {
                 markStatus(emp.id, 'ClockIn');
             } else if (status === 'Clocked In') {
                 markStatus(emp.id, 'ClockOut');
+            } else if (status === 'Holiday') {
+                showToast(`${emp.name} is on Holiday! Locked.`, 'error');
             } else {
                 showToast(`${emp.name} is already ${status}`, 'error');
             }
@@ -723,10 +1408,16 @@
             const date = document.getElementById('attendanceDate').value;
             if (employees.length === 0) return;
             if (!attendanceRecord[date]) attendanceRecord[date] = {};
+            const activeHoliday = checkHoliday(date);
             
             let count = 0;
             employees.forEach(e => {
-                if(!attendanceRecord[date][e.id]) {
+                const existing = attendanceRecord[date][e.id];
+                let status = existing ? existing.status : 'Not Marked';
+                
+                if ((status === 'Not Marked' || status === 'Absent') && activeHoliday) {
+                    attendanceRecord[date][e.id] = { status: 'Holiday', clockIn: null, clockOut: null, hours: 0 };
+                } else if(status === 'Not Marked') {
                     attendanceRecord[date][e.id] = { status: 'Clocked In', clockIn: Date.now(), clockOut: null, hours: 0 };
                     count++;
                 }
@@ -734,7 +1425,13 @@
             saveData();
             renderAttendance();
             updateDashboard();
-            if(count > 0) showToast(`Clocked In ${count} employees!`);
+            if(count > 0) {
+                showToast(`Clocked In ${count} employees!`);
+            } else if(activeHoliday) {
+                showToast(`Today is a Holiday!`, 'error');
+            } else {
+                showToast(`No more employees to clock in!`, 'error');
+            }
         }
 
         function renderAttendance() {
@@ -742,18 +1439,18 @@
             const tbody = document.getElementById('attendanceBody');
             tbody.innerHTML = '';
             const todayData = attendanceRecord[date] || {};
+            const activeHoliday = checkHoliday(date);
 
             employees.forEach((emp) => {
                 const rec = todayData[emp.id];
-                const status = rec ? rec.status : 'Not Marked';
+                let status = rec ? rec.status : 'Not Marked';
 
-                const checkInTimeStr = (rec && rec.clockIn) 
-                    ? new Date(rec.clockIn).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
-                    : '--';
+                if ((status === 'Not Marked' || status === 'Absent') && activeHoliday) {
+                    status = 'Holiday';
+                }
 
-                const checkOutTimeStr = (rec && rec.clockOut) 
-                    ? new Date(rec.clockOut).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
-                    : '--';
+                const checkInTimeStr = formatTimeDisplay(rec ? rec.clockIn : null);
+                const checkOutTimeStr = formatTimeDisplay(rec ? rec.clockOut : null);
                 
                 let badgeHTML = `<span class="whitespace-nowrap px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">Pending</span>`;
                 let actionsHTML = '';
@@ -768,11 +1465,18 @@
                     actionsHTML = `
                         <button onclick="markStatus('${emp.id}', 'ClockOut')" class="bg-rose-500 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-rose-600 transition-all w-48 border-2 border-rose-600 pulse-btn"><i class="fa-solid fa-right-from-bracket"></i> Clock Out (Leave)</button>
                     `;
-                } else if (status === 'Completed') {
-                    badgeHTML = `<span class="whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300"><i class="fa-solid fa-check-double mr-1"></i> Done (${formatHours(rec.hours)})</span>`;
+                } else if (status === 'Full Day' || status === 'Half Day') {
+                    const isFull = status === 'Full Day';
+                    const badgeClass = isFull ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-amber-100 text-amber-800 border-amber-300';
+                    const iconClass = isFull ? 'fa-check-double' : 'fa-star-half-stroke';
+                    
+                    badgeHTML = `<span class="whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold ${badgeClass} border"><i class="fa-solid ${iconClass} mr-1"></i> ${status} (${formatHours(rec.hours)})</span>`;
                     actionsHTML = `<span class="text-sm text-slate-400 font-bold bg-slate-100 px-4 py-2 rounded-lg border border-slate-200"><i class="fa-solid fa-lock text-slate-400"></i> Locked</span>`;
                 } else if (status === 'Absent') {
                     badgeHTML = `<span class="whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200"><i class="fa-solid fa-xmark mr-1"></i> Absent</span>`;
+                    actionsHTML = `<span class="text-sm text-slate-400 font-bold bg-slate-100 px-4 py-2 rounded-lg border border-slate-200"><i class="fa-solid fa-lock text-slate-400"></i> Locked</span>`;
+                } else if (status === 'Holiday') {
+                    badgeHTML = `<span class="whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-800 border border-orange-300"><i class="fa-solid fa-umbrella-beach mr-1"></i> Holiday</span>`;
                     actionsHTML = `<span class="text-sm text-slate-400 font-bold bg-slate-100 px-4 py-2 rounded-lg border border-slate-200"><i class="fa-solid fa-lock text-slate-400"></i> Locked</span>`;
                 }
 
@@ -791,7 +1495,7 @@
                         <td class="py-3 px-6 text-center whitespace-nowrap">${badgeHTML}</td>
                         <td class="py-3 px-6 text-center font-semibold text-slate-700">${checkOutTimeStr}</td>
                         <td class="py-3 px-6 text-center">
-                            <div class="flex items-center justify-center gap-2">
+                            <div class="flex flex-row items-center justify-center gap-2">
                                 ${actionsHTML}
                             </div>
                         </td>
@@ -807,7 +1511,6 @@
             });
         }
 
-        // --- DASHBOARD MATHS & CARD TOGGLE ---
         function toggleHoursCard() {
             hoursCardMode = (hoursCardMode === 'month') ? 'today' : 'month';
             updateDashboard();
@@ -817,16 +1520,21 @@
             const todayStr = document.getElementById('attendanceDate').value || new Date().toISOString().slice(0,10);
             const currentMonthStr = todayStr.slice(0,7);
             const todayData = attendanceRecord[todayStr] || {};
+            const activeHoliday = checkHoliday(todayStr);
 
             document.getElementById('statTotalEmp').innerText = employees.length;
 
             let workingOrDone = 0, absent = 0, todayTotalHours = 0;
-            Object.values(todayData).forEach(rec => {
-                if(rec.status === 'Clocked In' || rec.status === 'Completed') workingOrDone++;
-                if(rec.status === 'Absent') absent++;
-                if(rec.status === 'Completed' && rec.hours) {
-                    todayTotalHours += parseFloat(rec.hours);
+            
+            employees.forEach(emp => {
+                const rec = todayData[emp.id];
+                const status = rec ? rec.status : 'Not Marked';
+
+                if(status === 'Clocked In' || status === 'Full Day' || status === 'Half Day') {
+                    workingOrDone++;
+                    if(rec && rec.hours) todayTotalHours += parseFloat(rec.hours);
                 }
+                if(status === 'Absent' && !activeHoliday) absent++;
             });
 
             document.getElementById('statTodayPresent').innerText = workingOrDone;
@@ -847,22 +1555,30 @@
 
         function calculateMonthlyStats(monthKey) {
             const stats = {};
-            employees.forEach(e => { stats[e.id] = { name: e.name, empId: e.empId, daysWorked: 0, absent: 0, totalHours: 0 }; });
+            employees.forEach(e => { stats[e.id] = { name: e.name, empId: e.empId, fullDays: 0, halfDays: 0, absent: 0, totalHours: 0 }; });
 
             let grandTotalHours = 0;
             const daysInRecord = Object.keys(attendanceRecord).filter(d => d.startsWith(monthKey));
 
             daysInRecord.forEach(dateStr => {
                 const dayObj = attendanceRecord[dateStr];
+                const activeHol = checkHoliday(dateStr);
+
                 Object.keys(dayObj).forEach(empId => {
                     if(stats[empId]) {
                         const rec = dayObj[empId];
-                        if(rec.status === 'Completed') { 
-                            stats[empId].daysWorked++; 
+                        if(rec.status === 'Full Day') { 
+                            stats[empId].fullDays++; 
+                            stats[empId].totalHours += parseFloat(rec.hours || 0);
+                            grandTotalHours += parseFloat(rec.hours || 0);
+                        } else if (rec.status === 'Half Day') {
+                            stats[empId].halfDays++; 
                             stats[empId].totalHours += parseFloat(rec.hours || 0);
                             grandTotalHours += parseFloat(rec.hours || 0);
                         }
-                        if(rec.status === 'Absent') { stats[empId].absent++; }
+                        if(rec.status === 'Absent' && !activeHol) { 
+                            stats[empId].absent++; 
+                        }
                     }
                 });
             });
@@ -884,7 +1600,8 @@
                             <div class="font-semibold text-slate-800">${s.name}</div>
                             <div class="text-xs text-slate-500">${s.empId}</div>
                         </td>
-                        <td class="py-3 px-6 text-center text-emerald-600 font-bold bg-emerald-50/30">${s.daysWorked}</td>
+                        <td class="py-3 px-6 text-center text-emerald-600 font-bold bg-emerald-50/30">${s.fullDays}</td>
+                        <td class="py-3 px-6 text-center text-amber-600 font-bold bg-amber-50/30">${s.halfDays}</td>
                         <td class="py-3 px-6 text-center text-rose-600 font-bold bg-rose-50/30">${s.absent}</td>
                         <td class="py-3 px-6 text-center font-black text-indigo-700 text-lg bg-indigo-50/50">${formatHours(s.totalHours)}</td>
                     </tr>`;
@@ -894,10 +1611,10 @@
         function exportCSV() {
             const month = document.getElementById('reportMonth').value;
             const data = calculateMonthlyStats(month);
-            let csv = 'Emp ID,Employee Name,Days Worked,Absent,Total Time Logged\n';
+            let csv = 'Emp ID,Employee Name,Full Days,Half Days,Absent,Total Time Logged\n';
 
             Object.values(data.stats).forEach(s => {
-                csv += `"${s.empId}","${s.name}",${s.daysWorked},${s.absent},"${formatHours(s.totalHours)}"\n`;
+                csv += `"${s.empId}","${s.name}",${s.fullDays},${s.halfDays},${s.absent},"${formatHours(s.totalHours)}"\n`;
             });
 
             const blob = new Blob([csv], { type: 'text/csv' });
@@ -909,12 +1626,133 @@
             showToast("Hours Report Exported!");
         }
 
+        // --- WINNER EXPORT LOGIC ---
+        function exportWinnerCSV() {
+            const month = document.getElementById('winnerMonth').value || new Date().toISOString().slice(0, 7);
+            const data = calculateMonthlyStats(month);
+            
+            const sorted = Object.values(data.stats).sort((a, b) => {
+                if (b.totalHours !== a.totalHours) return b.totalHours - a.totalHours;
+                if (b.fullDays !== a.fullDays) return b.fullDays - a.fullDays;
+                return a.absent - b.absent;
+            });
+
+            if (sorted.length === 0 || sorted.every(s => s.totalHours === 0 && s.fullDays === 0)) {
+                showToast("No performance data to export.", "error");
+                return;
+            }
+
+            let csv = 'Rank,Emp ID,Employee Name,Full Days,Half Days,Absent,Total Time Logged\n';
+
+            sorted.forEach((s, idx) => {
+                csv += `"${idx + 1}","${s.empId}","${s.name}",${s.fullDays},${s.halfDays},${s.absent},"${formatHours(s.totalHours)}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `Winner_Performance_${month}.csv`);
+            a.click();
+            showToast("Winner Report Exported to CSV!");
+        }
+
+        function exportWinnerPDF() {
+            const month = document.getElementById('winnerMonth').value || new Date().toISOString().slice(0, 7);
+            const container = document.getElementById('winnerDisplayArea');
+            
+            // Hide buttons temporarily so they don't show in the PDF
+            const buttons = container.querySelectorAll('.export-btn-winner');
+            buttons.forEach(b => b.style.display = 'none');
+
+            showToast("Generating Winner PDF Report...");
+
+            const opt = {
+                margin:       10,
+                filename:     `Winner_Performance_${month}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(container).save().then(() => {
+                // Restore buttons
+                buttons.forEach(b => b.style.display = '');
+                showToast("Winner PDF Downloaded Successfully!");
+            });
+        }
+
+        function exportPDF() {
+            const month = document.getElementById('reportMonth').value;
+            const data = calculateMonthlyStats(month);
+
+            const container = document.createElement('div');
+            container.style.padding = '30px';
+            container.style.fontFamily = "'Plus Jakarta Sans', Arial, sans-serif";
+            container.style.color = '#1e293b'; 
+            container.style.backgroundColor = '#ffffff';
+
+            let rowsHtml = '';
+            Object.values(data.stats).forEach(s => {
+                rowsHtml += `
+                    <tr style="border-bottom: 1px solid #e2e8f0; font-size: 14px;">
+                        <td style="padding: 16px 20px;">
+                            <div style="font-weight: 700; color: #1e293b;">${s.name}</div>
+                            <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">${s.empId}</div>
+                        </td>
+                        <td style="padding: 16px 20px; text-align: center; color: #10b981; font-weight: 800;">${s.fullDays}</td>
+                        <td style="padding: 16px 20px; text-align: center; color: #f59e0b; font-weight: 800;">${s.halfDays}</td>
+                        <td style="padding: 16px 20px; text-align: center; color: #ef4444; font-weight: 800;">${s.absent}</td>
+                        <td style="padding: 16px 20px; text-align: center; color: #4f46e5; font-weight: 800;">${formatHours(s.totalHours)}</td>
+                    </tr>
+                `;
+            });
+
+            container.innerHTML = `
+                <div style="margin-bottom: 24px;">
+                    <h1 style="font-size: 28px; font-weight: 800; margin: 0 0 10px 0; color: #1e293b; letter-spacing: -0.5px;">${sysSettings.companyName || 'AttendOS'}</h1>
+                    <p style="font-size: 16px; color: #64748b; margin: 0; font-weight: 500;">Attendance Report - ${month}</p>
+                </div>
+                <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                        <thead style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                            <tr>
+                                <th style="padding: 16px 20px; font-weight: 700; font-size: 14px; color: #334155;">Employee Name</th>
+                                <th style="padding: 16px 20px; font-weight: 700; font-size: 14px; color: #334155; text-align: center;">Full Days</th>
+                                <th style="padding: 16px 20px; font-weight: 700; font-size: 14px; color: #334155; text-align: center;">Half Days</th>
+                                <th style="padding: 16px 20px; font-weight: 700; font-size: 14px; color: #334155; text-align: center;">Absent</th>
+                                <th style="padding: 16px 20px; font-weight: 700; font-size: 14px; color: #334155; text-align: center;">Total Hours Logged</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            showToast("Generating PDF Report...");
+
+            const opt = {
+                margin:       10,
+                filename:     `AttendOS_Report_${month}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(container).save().then(() => {
+                showToast("PDF Report Downloaded Successfully!");
+            });
+        }
+
         function saveData() {
             localStorage.setItem('pro_employees_v2', JSON.stringify(employees));
             localStorage.setItem('pro_attendanceRecord_v2', JSON.stringify(attendanceRecord));
         }
 
         // Init
+        initSystem();
         updateDashboard();
         renderAttendance();
         
